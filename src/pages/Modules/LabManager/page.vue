@@ -30,9 +30,9 @@
                     <i-form-item label="实验室类型" prop="RoomType">
                         <i-select v-model="labInfo.RoomType">
                             <i-option
-                                v-for="(value, key, index) in RoomType"
+                                v-for="(value, key) in RoomType"
                                 :value="key"
-                                :key="index"
+                                :key="key"
                                 >{{ value }}</i-option>
                         </i-select>
                     </i-form-item>
