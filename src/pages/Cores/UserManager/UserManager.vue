@@ -3,12 +3,13 @@
         <Row type="flex">
             <i-col class="tree">
                 <div class="user-search">
-                    <Input prefix="ios-search" placeholder="搜索成员，部门" />
+                    <i-button long @click="addDepart" ghost icon="md-add">添加部门</i-button>
+                    <!-- <Input prefix="ios-search" placeholder="搜索成员，部门" />
                     <div class="more-btn" @click="addDepart">
                         <Tooltip content="添加部门" placement="right">
                             <Icon type="md-add" />
                         </Tooltip>
-                    </div>
+                    </div> -->
                 </div>
                 <Tree :data="orgTree" class="org-tree" :render="renderOrgTree" :empty-text="emptyText" :load-data="getChildTree"></Tree>
             </i-col>
@@ -16,8 +17,14 @@
                 <div class="header">
                     <span>{{depart}}（{{totalUsers}}人）</span>
                 </div>
-                <Button @click="showUserDetail('')" v-if="permissions.add">添加成员</Button>
-                <!-- <Button>删除成员</Button> -->
+                <i-row type="flex" :gutter="16">
+                    <i-col>
+                        <Button @click="showUserDetail('')" v-if="permissions.add">添加成员</Button>
+                    </i-col>
+                    <i-col>
+                        <i-input search v-model="userName" @on-enter="getUsers()" placeholder="搜索成员" />
+                    </i-col>
+                </i-row>
                 <Table :loading="isLoadingUser" stripe :columns="columns1" :data="userData" class="user-table" width="100%">
                     <template slot="isBind" slot-scope="{row}">
                         <template v-if="row.OpenId">
@@ -97,6 +104,7 @@ var _ = require("lodash")
 const app = require("@/config")
 const axios = require("axios");
 export default {
+    name: "um",
     components: { OrgSelector, UserDetail },
     methods: {
         unbind (id, openId) {
@@ -121,8 +129,9 @@ export default {
         },
         renderOrgTree (h, {root, node, data}) {
             let THIS = this;
+            let dptName = data.name === "无部门" ? "所有部门" : data.name;
             return h('span', {
-                class: { "ivu-tree-title": true, "ivu-tree-title-selected": data.selected },
+                class: { "ivu-tree-title-span": true, "ivu-tree-title-selected": data.selected },
                 on: {
                     click () {
                         root.map(e => e.node.selected = false);
@@ -134,11 +143,11 @@ export default {
                     }
                 }
             }, [
-                h("span", [
+                h("span", { class: { "ivu-tree-title-text": true }, title: dptName }, [
                     h("Icon", { props: { type: data.isDepart ? 'md-folder' : 'ios-person' }, style: { marginRight: "8px" } }),
                     h("span", data.name === "无部门" ? "所有部门" : data.name)
                 ]),
-                data.id !== "00000000-0000-0000-0000-000000000000" ? h("span", { class: { "btn-area": true } }, [
+                (data.id !== "00000000-0000-0000-0000-000000000000" && data.isDepart) ? h("span", { class: { "btn-area": true } }, [
                     h("span", { class: { "btn": true }, on: { click: () => THIS.modifyDepart(data.id, data) } }, [
                         h("Icon", { props: { type: "md-create" } })
                     ]),
@@ -149,7 +158,7 @@ export default {
             ])
         },
         getDepartTree () {
-            axios.post("/api/security/GetDepartTree", {}, msg => {
+            axios.post("/api/security/GetDepartTree", { ajax: true }, msg => {
                 if (!msg.success) {
                     this.orgTree = [];
                     this.emptyText = msg.msg;
@@ -162,7 +171,7 @@ export default {
             })
         },
         getChildTree (item, cb) {
-            axios.post("/api/security/GetDepartTree", { id: item.id }, msg => {
+            axios.post("/api/security/GetDepartTree", { id: item.id, ajax: true }, msg => {
                 if (!msg.success) {
                     this.$Message.error(msg.msg);
                     let data = [];
@@ -196,7 +205,8 @@ export default {
             this.modifyDialog.model.departId = departId;
             this.modifyDialog.model.name = depart.name;
             this.modifyDialog.model.parentId = depart.pid
-            this.modifyDialog.isShow = true;
+            // this.modifyDialog.isShow = true;
+            this.$router.push({ name: "OrgManager", query: { id: departId } });
         },
         addDepart () {
             this.modifyDialog.title = "添加部门";
@@ -240,7 +250,7 @@ export default {
             this.isLoadingUser = true;
             this.showTab = "user";
             this.page = page || this.page;
-            axios.post("/api/security/GetUsers", { departId: this.departId, isAll: this.isAll, page: this.page, pageSize: this.pageSize }, msg => {
+            axios.post("/api/security/GetUsers", {departId: this.departId, isAll: this.isAll, page: this.page, pageSize: this.pageSize, name: this.userName}, msg => {
                 this.isLoadingUser = false;
                 if (msg.success) {
                     this.totalUsers = msg.totalRow;
@@ -274,7 +284,8 @@ export default {
             columns1: [
                 {
                     title: '姓名',
-                    key: 'RealName'
+                    key: 'RealName',
+                    maxWidth: 150
                 },
                 {
                     title: '部门',
@@ -282,15 +293,18 @@ export default {
                 },
                 {
                     title: '学/工号',
-                    key: 'Code'
+                    key: 'Code',
+                    maxWidth: 180
                 },
                 {
                     title: '手机',
-                    key: 'Mobile'
+                    key: 'Mobile',
+                    maxWidth: 180
                 },
                 {
                     title: "是否绑定微信",
-                    slot: "isBind"
+                    slot: "isBind",
+                    maxWidth: 160
                 },
                 {
                     title: '操作',
@@ -317,11 +331,13 @@ export default {
                             }
                         }, "[删除]"));
                         return h("div", [...operate])
-                    }
+                    },
+                    maxWidth: 160
                 }
             ],
             userData: [],
             showTab: "user",
+            userName: "",
             emptyText: "数据加载中...",
             orgTree: [],
             userId: "",

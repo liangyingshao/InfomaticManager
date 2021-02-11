@@ -71,29 +71,29 @@ export default {
             })
         },
         removeRole (id) {
-            if (!confirm("是否删除该角色")) {
-                return;
-            }
-            axios.post("/api/security/RemoveRole", { id }, msg => {
+            this.$Modal.confirm({
+                title: "是否删除该角色",
+                onOk: () => {
+                    axios.post("/api/security/RemoveRole", { id }, msg => {
+                        if (msg.success) {
+                            this.$Message.success(msg.msg)
+                        }
+                        this.getData();
+                    })
+                }
+            });
+        },
+        addSingleRole () {
+            axios.post("/api/security/SaveRole", { role: this.newRole }, msg => {
                 if (msg.success) {
-                    this.$Message.success(msg.msg)
+                    this.$Message.success(msg.msg);
+                } else {
+                    this.$Message.warning(msg.msg);
                 }
                 this.getData();
             })
         },
         addRole () {
-            let onOK = () => {
-                axios.post("/api/security/SaveRole", { role: this.newRole }, msg => {
-                    if (msg.success) {
-                        this.$Message.success(msg.msg);
-                    } else {
-                        this.$Message.warning(msg.msg);
-                    }
-                    this.getData();
-                    this.$Modal.remove();
-                })
-            };
-
             this.$Modal.confirm({
                 render: (h) => {
                     return h('Input', {
@@ -102,22 +102,22 @@ export default {
                             autofocus: true,
                             placeholder: '请输入角色名'
                         },
-                        loading: true,
                         on: {
                             input: (val) => {
                                 this.newRole = val;
                             },
                             "on-keyup" (event) {
                                 if (event.keyCode === 13) {
-                                    onOK();
+                                    this.addSingleRole();
                                 }
                             }
-                        },
-                        onOK () {
-                            onOK();
                         }
                     })
-                }
+                },
+                onOk: () => {
+                    this.addSingleRole()
+                },
+                loading: false
             })
         }
     },

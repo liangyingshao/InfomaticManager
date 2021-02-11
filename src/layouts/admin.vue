@@ -1,33 +1,31 @@
 <template>
     <Layout class="main-layer">
         <Sider ref="side1" hide-trigger collapsible :collapsed-width="78" v-model="isCollapsed">
-            <Affix>
-                <div class="logo"></div>
-                <Menu ref="menu" theme="dark" width="auto" :class="menuitemClasses" :open-names="openMenus.map(e => e.ActionName || e.Text)" :active-name="activeMenu">
-                    <template v-for="(item, index) in menus">
-                        <i-menu-item v-if="item.Items && !item.Items.length" :key="index" :to="{ name: item.ActionName }" :name="item.ActionName || item.Text">
-                            <i :class="{fa: true, [item.Icons]: true}" :key="'i' + index"/>
-                            <span :key="'span' + index">{{ item.Text }}</span>
+            <div class="logo"></div>
+            <Menu ref="menu" theme="dark" id="main-menu" width="auto" :class="menuitemClasses" :open-names="openMenus.map(e => e.ActionName || e.Text)" :active-name="activeMenu">
+                <template v-for="(item, index) in menus">
+                    <i-menu-item v-if="item.Items && !item.Items.length" :key="index" :to="{ name: item.ActionName }" :name="item.ActionName || item.Text">
+                        <i :class="{fa: true, [item.Icons]: true}" :key="'i' + index"/>
+                        <span :key="'span' + index">{{ item.Text }}</span>
+                    </i-menu-item>
+                    <Submenu v-if="item.Items && item.Items.length" :key="index" :name="item.Text">
+                        <template slot="title">
+                            <i :class="{fa: true, [item.Icons]: true}"/>
+                            <span>{{ item.Text }}</span>
+                        </template>
+                        <i-menu-item v-for="(v, k) in item.Items" :key="k" :to="{ name: v.ActionName }" :name="v.ActionName || v.Text">
+                            <!-- <i :class="{fa: true, [v.Icons]: true}"/> -->
+                            <span>{{ v.Text }}</span>
                         </i-menu-item>
-                        <Submenu v-if="item.Items && item.Items.length" :key="index" :name="item.Text">
-                            <template slot="title">
-                                <i :class="{fa: true, [item.Icons]: true}"/>
-                                <span>{{ item.Text }}</span>
-                            </template>
-                            <i-menu-item v-for="(v, k) in item.Items" :key="k" :to="{ name: v.ActionName }" :name="v.ActionName || v.Text">
-                                <!-- <i :class="{fa: true, [v.Icons]: true}"/> -->
-                                <span>{{ v.Text }}</span>
-                            </i-menu-item>
-                        </Submenu>
-                    </template>
-                </Menu>
-            </Affix>
+                    </Submenu>
+                </template>
+            </Menu>
         </Sider>
         <Layout>
             <Affix>
                 <Header :style="{padding: 0}" class="layout-header-bar">
-                    <Row >
-                        <i-col span="20">
+                    <Row>
+                        <i-col span="19">
                             <Icon @click.native="collapsedSider" :class="rotateIcon" :style="{margin: '0 20px'}" type="md-menu" size="24"></Icon>
                         </i-col>
                         <!-- <i-col span="1">
@@ -39,14 +37,30 @@
                                 <DropdownMenu slot="list"></DropdownMenu>
                             </Dropdown>
                         </i-col> -->
+                        <!-- <i-col span="3">
+                            <Button @click="changeNotice">变更通知</Button>
+                        </i-col> -->
                         <i-col span="1">
-                            <Icon :style="[{margin: '0 5px'},{cursor: 'pointer'}]" type="md-notifications-outline" size="24"></Icon>
+                            <!-- <Icon :style="[{margin: '0 5px'},{cursor: 'pointer'}]" @click="$Message.info('功能开发中，敬请期待');" type="md-notifications-outline" size="24"></Icon> -->
+                            <Notices :notices="notices" @clear="clearNotice" style="display: none"/>
                         </i-col>
-                        <i-col span="1">
+                        <i-col span="4">
                             <Dropdown trigger="click">
                                 <div style="cursor:pointer">
-                                    <Avatar :src="app.userInfo.avatar" />
-                                    <Icon type="md-arrow-dropdown" />
+                                    <i-row type="flex" :gutter="16">
+                                        <i-col>
+                                            <Avatar :src="app.userInfo.avatar" />
+                                        </i-col>
+                                        <i-col style="margin-top: 15px; max-width: 60%;">
+                                            <p style="line-height: 20px; overflow:hidden; text-overflow:ellipsis; white-space: nowrap;">{{app.userInfo.realName}}</p>
+                                            <p style="line-height: 20px; font-size: 12px; overflow:hidden; text-overflow:ellipsis; white-space: nowrap;">
+                                                {{`${app.userInfo.region.province} ${app.userInfo.region.city}`}}
+                                            </p>
+                                        </i-col>
+                                        <i-col>
+                                            <Icon type="md-arrow-dropdown" />
+                                        </i-col>
+                                    </i-row>
                                 </div>
                                 <DropdownMenu slot="list">
                                     <DropdownItem>
@@ -67,7 +81,7 @@
             <Content :style="{margin: '20px'}" class="content">
                 <slot></slot>
             </Content>
-            <Footer class="layout-footer-center">&copy; 2019 <a href="http://www.ricebird.cn">厦门米雀软件科技有限公司</a> 版权所有</Footer>
+            <!--Footer class="layout-footer-center">&copy; 2019 <a href="http://www.ricebird.cn">厦门米雀软件科技有限公司</a> 版权所有</Footer-->
         </Layout>
     </Layout>
 </template>
@@ -75,13 +89,16 @@
 <script>
 import { Layout, Sider, Menu, MenuItem, Header, Icon, Content, Affix, Submenu } from 'view-design'
 import Axios from 'axios';
+import Notices from './components/notices'
+let signalR = require("@/api/signalR").default;
 const app = require('@/config')
 export default {
-    components: { Layout, Sider, Menu, MenuItem, Header, Icon, Content, Affix, Submenu },
+    name: "admin-layout",
+    components: { Layout, Sider, Menu, MenuItem, Header, Icon, Content, Affix, Submenu, Notices },
     created () {
-        let signalR = require("@/api/signalR").default;
         signalR.ready(msg => {
-            signalR.resetUserId();
+            signalR.resetUserId(app.userInfo.token);
+            window._console.log(`登录成功！已向服务器更新登录信息`);
         })
     },
     mounted () {
@@ -135,12 +152,23 @@ export default {
         logout () {
             Axios.post("/api/security/logout", {currentUserGuid: app.currentUserGuid}, msg => {
                 if (msg.success === true) {
-                    this.$Message.success("登出成功");
+                    // this.$Message.success("登出成功");
                 } else {
                     this.$Message.warning("登出失败");
                 }
-                this.$router.push({ name: "Login" });
+                // this.$router.push({ name: "Login" });
             })
+        },
+        clearNotice () {
+            // alert("clear");
+            this.notices = [];
+        },
+        changeNotice () {
+            this.notices.push({
+                title: "通知02",
+                icon: "ios-alert-outline",
+                detail: ""
+            });
         }
     },
     data () {
@@ -150,7 +178,21 @@ export default {
             isCollapsed: false,
             menus: app.menus,
             openMenus: [],
-            activeMenu: ""
+            activeMenu: "",
+            notices: [
+                {
+                    title: "通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知通知",
+                    icon: "ios-alert",
+                    detail: "",
+                    time: "2021年1月19日 21:00:00"
+                },
+                {
+                    title: "通知02",
+                    icon: "ios-alert-outline",
+                    detail: "",
+                    time: "2021年1月19日 21:00:00"
+                }
+            ]
         }
     },
     watch: {
@@ -168,6 +210,7 @@ export default {
         menuitemClasses () {
             return [
                 'menu-item',
+                'i-scrollbar-hide',
                 this.isCollapsed ? 'collapsed-menu' : ''
             ]
         }
@@ -234,5 +277,9 @@ export default {
 }
 .main-layer {
     min-height: fill-available;
+}
+#main-menu {
+    height: calc(~'100vh - 64px');
+    overflow-y: auto;
 }
 </style>
